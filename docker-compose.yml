@@ -1,0 +1,19 @@
+version: '3'
+services:
+  app1:
+    build: app1/
+    container_name: app1
+    ports:
+     - "7991:8000"
+
+  app2:
+    build: app2/
+    container_name: app2
+    ports:
+     - "8000:8000"
+
+  app3:
+    build: app3/
+    container_name: app3
+    ports:
+     - "8001:8000"

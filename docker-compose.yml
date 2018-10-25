@@ -4,7 +4,7 @@ services:
     build: app1/
     container_name: app1
     ports:
-     - "7991:8000"
+     - "7999:8000"
 
   app2:
     build: app2/
@@ -17,3 +17,9 @@ services:
     container_name: app3
     ports:
      - "8001:8000"
+
+  client:
+    build: client/
+    container_name: client
+    ports:
+     - "8002:8000"

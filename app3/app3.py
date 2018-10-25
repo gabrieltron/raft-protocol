@@ -6,7 +6,7 @@ import _thread as thread
 class Node():
 
     def __init__(self):
-        self.other_nodes = {'app1', 'app3'}
+        self.other_nodes = {'app1', 'app2'}
         self.leader = False
         self.candidate = False
         self.value = 0
@@ -19,7 +19,7 @@ class Node():
 
     def listen(self):
         self.timeout = randint(150, 300)
-        socket.setdefaulttimeout(3)
+        socket.setdefaulttimeout(5)
         self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server.bind(('', 8000))
         self.server.listen()
@@ -43,15 +43,20 @@ class Node():
                     if self.term != new_term:
                         print('Voting')
                         self.term = new_term
-                        clientsocket.connect(address, 8001)
-                        clientsocket.send('1')
-
+                        try:
+                            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                            s.connect((address[0], 8001))
+                            message = ('1', self.term)
+                            s.send(pickle.dumps(message))
+                            s.close()
+                        except ConnectionRefusedError:
+                            pass
 
             except socket.timeout:
                 print('Timeout reached')
                 if not self.leader:
                     self.candidate = True
-                    thread.start_new_thread(self.ask_votes, (self,))
+                    thread.start_new_thread(self.ask_votes, tuple())
                 else:
                     self.send_heartbeat()
 
@@ -63,34 +68,41 @@ class Node():
             s.connect((host_ip, 8000))
             message = ('Heartbeat', self.log)
             s.send(pickle.dumps(message))
+            s.close()
 
-    def ask_votes():
+    def ask_votes(self):
         print('Asking for votes')
         self.term += 1
-        for node in other_nodes:
+
+        votes = 1
+        vote_listen = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        vote_listen.bind(('', 8001))
+        vote_listen.listen()
+
+        for node in self.other_nodes:
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             host_ip = socket.gethostbyname(node)
             s.connect((host_ip, 8000))
-            s.send(('Request votes', self.term))
-        votes = 1
-        while votes < len(other_nodes)//2 and self.candidate:
-            vote_listen = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            vote_listen.bind('', 8001)
+            message = ('Request votes', self.term)
+            s.send(pickle.dumps(message))
+            s.close()
+        
+        while votes <= len(self.other_nodes)//2 and self.candidate:
             try:
-                (clientsocket, address) = self.server.accept()
-            except:
+                (clientsocket, address) = vote_listen.accept()
+            except socket.timeout:
                 break
-            vote = clientsocket.recv(1024).decode()
-            if vote == '1':
-                vote += 1
+            vote, term = pickle.loads(clientsocket.recv(1024))
+            if vote == '1' and term == self.term:
+                votes += 1
 
-        if votes < len(other_nodes):
+        vote_listen.close()
+
+        if votes > len(self.other_nodes)//2:
+            print('Elected. Becoming leader')
             self.leader = True
+            self.candidate = False
             self.server.settimeout(1)
-
-        elif self.candidate:
-            self.ask_votes()
-
 
 
 Node()

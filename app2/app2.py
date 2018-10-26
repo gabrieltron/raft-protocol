@@ -11,8 +11,7 @@ class Node():
         self.candidate = False
         self.value = 0
         self.term = 0
-        self.voted = False
-        self.log = [('Starting', 1)]
+        self.log = [('Starting', 0)]
         self.uncommited = []
         thread.start_new_thread(self.listen_application, tuple())
         self.listen()
@@ -164,7 +163,7 @@ class Node():
             if self.leader:
                 print('Command recieved by application.')
                 message = pickle.loads(clientsocket.recv(1024))
-                self.uncommited.append(message)
+                self.uncommited.append((message, self.term))
                 self.wait_consensus()
 
 Node()

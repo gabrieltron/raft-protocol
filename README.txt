@@ -1,0 +1,2 @@
+Para executar o código, incialize o docker e execute o comando "docker-compose up".
+Como o intuito do trabalho é simular o protocolo RAFT a aplicação em si é extramamente simples, soma '3' no valor armazenado.
